@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
 import { Filters } from './components/Filters';
+import { CategorySummary } from './components/CategorySummary';
 import type { SortKey } from './types/api';
 
 export function App() {
@@ -15,7 +16,10 @@ export function App() {
       </header>
 
       <div className="grid">
-        <ExpenseForm />
+        <div className="stack">
+          <ExpenseForm />
+          <CategorySummary />
+        </div>
         <div className="stack">
           <Filters
             category={category}

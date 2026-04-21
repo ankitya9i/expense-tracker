@@ -109,4 +109,49 @@ describe('ExpenseService', () => {
       expect(res.totalAmount).toBe('0.00');
     });
   });
+
+  describe('summary', () => {
+    it('returns empty breakdown and zero total when there are no expenses', async () => {
+      const res = await service.summary();
+      expect(res.byCategory).toEqual([]);
+      expect(res.grandTotal).toBe('0.00');
+      expect(res.count).toBe(0);
+    });
+
+    it('groups by category with correct totals and counts', async () => {
+      await service.create({ amount: '100.00', category: 'Food', description: 'a', date: '2026-04-10' });
+      await service.create({ amount: '50.50', category: 'Food', description: 'b', date: '2026-04-11' });
+      await service.create({ amount: '200.00', category: 'Travel', description: 'c', date: '2026-04-12' });
+
+      const res = await service.summary();
+
+      expect(res.count).toBe(3);
+      expect(res.grandTotal).toBe('350.50');
+      expect(res.byCategory).toHaveLength(2);
+
+      const food = res.byCategory.find((c) => c.category === 'Food')!;
+      expect(food).toEqual({ category: 'Food', total: '150.50', count: 2 });
+
+      const travel = res.byCategory.find((c) => c.category === 'Travel')!;
+      expect(travel).toEqual({ category: 'Travel', total: '200.00', count: 1 });
+    });
+
+    it('sorts categories by total descending', async () => {
+      await service.create({ amount: '10.00', category: 'Food', description: 'a', date: '2026-04-10' });
+      await service.create({ amount: '100.00', category: 'Travel', description: 'b', date: '2026-04-10' });
+      await service.create({ amount: '50.00', category: 'Bills', description: 'c', date: '2026-04-10' });
+
+      const res = await service.summary();
+      expect(res.byCategory.map((c) => c.category)).toEqual(['Travel', 'Bills', 'Food']);
+    });
+
+    it('computes grand total using integer paise (no float drift)', async () => {
+      for (let i = 0; i < 10; i++) {
+        await service.create({ amount: '0.10', category: 'Food', description: `x${i}`, date: '2026-04-10' });
+      }
+      const res = await service.summary();
+      expect(res.grandTotal).toBe('1.00');
+      expect(res.byCategory[0]).toEqual({ category: 'Food', total: '1.00', count: 10 });
+    });
+  });
 });

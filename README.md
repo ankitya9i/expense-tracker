@@ -28,6 +28,7 @@ A small, production-minded full-stack expense tracker: record personal spending,
 ## Features
 - Add an expense (amount, category, description, date) via a form with inline validation.
 - View all expenses in a sortable table, with the **total for the currently visible list** shown on top.
+- **Per-category summary** with bar chart — see where your money is going at a glance (sorted by spend).
 - Filter by category.
 - Sort by date (newest or oldest first).
 - Category pills are color-coded for quick scanning.
@@ -82,11 +83,12 @@ npm run dev                    # http://localhost:5173 (or 5174 if 5173 is busy)
 
 Base URL (local): `http://localhost:4001`
 
-| Method | Path          | Notes                                                        |
-|--------|---------------|--------------------------------------------------------------|
-| POST   | `/expenses`   | Accepts `Idempotency-Key` header. Safe to retry.             |
-| GET    | `/expenses`   | Supports `?category=<name>&sort=date_desc` (or `date_asc`).  |
-| GET    | `/health`     | Liveness probe (`{ "status": "ok" }`).                       |
+| Method | Path                  | Notes                                                        |
+|--------|-----------------------|--------------------------------------------------------------|
+| POST   | `/expenses`           | Accepts `Idempotency-Key` header. Safe to retry.             |
+| GET    | `/expenses`           | Supports `?category=<name>&sort=date_desc` (or `date_asc`).  |
+| GET    | `/expenses/summary`   | Per-category totals (sorted by spend desc) + grand total.    |
+| GET    | `/health`             | Liveness probe (`{ "status": "ok" }`).                       |
 
 ### `POST /expenses`
 
@@ -140,6 +142,22 @@ Response `200 OK`:
 ```
 
 `totalAmount` is computed on the server **after** the filter is applied, so it always reflects what the client is showing.
+
+### `GET /expenses/summary`
+
+Response `200 OK`:
+```json
+{
+  "byCategory": [
+    { "category": "Food", "total": "371.25", "count": 2 },
+    { "category": "Travel", "total": "50.00", "count": 1 }
+  ],
+  "grandTotal": "421.25",
+  "count": 3
+}
+```
+
+Always returns the full breakdown (ignores filter state). Categories are sorted by total **descending** so the biggest spend comes first.
 
 ### Try it with cURL
 
@@ -195,7 +213,7 @@ npm run test:watch
 
 ### What's covered
 
-**Backend (`vitest`, 32 tests)**
+**Backend (`vitest`, 36 tests)**
 - `money.test.ts` — rupee ↔ paise round-trip, no-float-drift summing, rejection of malformed input, negative-value formatting.
 - `expenses.schema.test.ts` — zod validation for create + list query (required fields, amount precision, date format).
 - `expense.service.test.ts` — end-to-end service behavior against an in-memory Prisma double:
@@ -205,6 +223,7 @@ npm run test:watch
   - Different keys → distinct rows.
   - No key → each call creates a new row (expected behavior when the client doesn't opt in).
   - Filter, sort asc/desc, per-filter total, empty-filter total = `"0.00"`.
+  - Summary: empty case, per-category grouping with counts + totals, sorted by total desc, paise-accurate sums.
 
 **Frontend (`vitest` + `jsdom`, 5 tests)**
 - `api.test.ts` — the fetch wrapper:
@@ -272,7 +291,6 @@ A single error middleware maps `ZodError` → 400, known `HttpError` → its sta
 - **No authentication** — assignment is a single-user tool. Adding auth would double the surface without changing the evaluation signal.
 - **No pagination** — bounded list at personal-use scale; if this grew, cursor pagination on `(date, id)` is the natural next step.
 - **No delete/edit endpoints** — assignment didn't ask; data model supports them without changes.
-- **Per-category summary view skipped** — ~30 extra minutes and another endpoint; the filtered `totalAmount` already answers *"where did my Food money go this month?"*
 - **Frontend component tests are light.** The highest-leverage behavior (idempotency-key stability, no-4xx-retry, query-string building) is covered in `api.test.ts`. Full UI-level tests would add coverage but not much signal for this scope.
 - **Idempotency keys never expire** in this cut. In production I'd TTL them (e.g. 24 h) with a background cleanup job or a partial index with `createdAt`.
 

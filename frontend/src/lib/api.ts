@@ -1,6 +1,12 @@
-import type { CreateExpenseInput, ListExpensesResponse, Expense, SortKey } from '../types/api';
+import type {
+  CreateExpenseInput,
+  ListExpensesResponse,
+  Expense,
+  SortKey,
+  SummaryResponse,
+} from '../types/api';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL ?? 'https://expense-tracker-production-28a5.up.railway.app';
 
 export class ApiError extends Error {
   constructor(
@@ -82,6 +88,11 @@ export async function listExpenses(params: {
   const qs = search.toString();
   const res = await fetchWithRetry(`${API_URL}/expenses${qs ? `?${qs}` : ''}`);
   return parseOrThrow<ListExpensesResponse>(res);
+}
+
+export async function getSummary(): Promise<SummaryResponse> {
+  const res = await fetchWithRetry(`${API_URL}/expenses/summary`);
+  return parseOrThrow<SummaryResponse>(res);
 }
 
 export async function createExpense(
