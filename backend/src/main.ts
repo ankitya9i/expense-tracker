@@ -6,7 +6,7 @@ import { buildApp } from './app';
 async function bootstrap() {
   const app = buildApp(prisma);
 
-  const server = app.listen(env.PORT, () => {
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
     logger.info({ port: env.PORT, env: env.NODE_ENV }, 'API listening');
   });
 
