@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Expense {
+  id           String   @id @default(cuid())
+  amountPaise  BigInt   @map("amount_paise")
+  category     String   @db.VarChar(64)
+  description  String   @db.VarChar(500)
+  date         DateTime @db.Date
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([category])
+  @@index([date])
+  @@map("expenses")
+}
+
+model IdempotencyKey {
+  key        String   @id @db.VarChar(128)
+  resourceId String   @map("resource_id") @db.VarChar(64)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("idempotency_keys")
+}
