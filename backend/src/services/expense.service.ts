@@ -17,6 +17,18 @@ export type ListExpensesResponse = {
   count: number;
 };
 
+export type CategorySummaryItem = {
+  category: string;
+  total: string;
+  count: number;
+};
+
+export type SummaryResponse = {
+  byCategory: CategorySummaryItem[];
+  grandTotal: string;
+  count: number;
+};
+
 type ExpenseRow = {
   id: string;
   amountPaise: bigint;
@@ -80,6 +92,35 @@ export class ExpenseService {
 
       return toDTO(created);
     });
+  }
+
+  async summary(): Promise<SummaryResponse> {
+    const rows = await this.prisma.expense.findMany();
+    const grouped = new Map<string, { totalPaise: bigint; count: number }>();
+    for (const row of rows) {
+      const current = grouped.get(row.category) ?? { totalPaise: 0n, count: 0 };
+      grouped.set(row.category, {
+        totalPaise: current.totalPaise + row.amountPaise,
+        count: current.count + 1,
+      });
+    }
+
+    const byCategory = Array.from(grouped.entries())
+      .map(([category, { totalPaise, count }]) => ({
+        category,
+        total: paiseToRupeesString(totalPaise),
+        count,
+        _totalPaise: totalPaise,
+      }))
+      .sort((a, b) => (b._totalPaise > a._totalPaise ? 1 : b._totalPaise < a._totalPaise ? -1 : 0))
+      .map(({ _totalPaise: _omit, ...rest }) => rest);
+
+    const grandTotalPaise = sumPaise(rows.map((r) => r.amountPaise));
+    return {
+      byCategory,
+      grandTotal: paiseToRupeesString(grandTotalPaise),
+      count: rows.length,
+    };
   }
 
   async list(query: ListExpensesQuery): Promise<ListExpensesResponse> {

@@ -13,6 +13,18 @@ export type ListExpensesResponse = {
   count: number;
 };
 
+export type CategorySummaryItem = {
+  category: string;
+  total: string;
+  count: number;
+};
+
+export type SummaryResponse = {
+  byCategory: CategorySummaryItem[];
+  grandTotal: string;
+  count: number;
+};
+
 export type CreateExpenseInput = {
   amount: string;
   category: string;
