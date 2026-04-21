@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/expenseform.tsx","./src/components/expenselist.tsx","./src/components/filters.tsx","./src/lib/api.ts","./src/lib/uuid.ts","./src/types/api.ts","./tests/api.test.ts","./tests/setup.ts"],"version":"5.9.3"}
